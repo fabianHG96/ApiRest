@@ -91,3 +91,7 @@ async def obtener_usuarios_por_empresa(request: Request, db: Session = Depends(d
     return templates.TemplateResponse("usuarios_empresa.html", {"request": request, "empresas": empresas, "usuario": usuario})
 
 
+@app.get("/empresas/{empresa_id}/usuarios", response_model=List[models.UsuarioBase])
+def obtener_usuarios_por_empresa(empresa_id: int):
+    db = database.SessionLocal()
+    return crud.obtener_usuarios_por_empresa(db, empresa_id)
