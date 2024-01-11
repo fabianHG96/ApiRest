@@ -11,16 +11,24 @@ def crear_usuario(db: Session, usuario: models.UsuarioBase):
     return usuario
 
 def leer_usuario(db: Session, usuario_id: int):
-    return db.query(models.Usuario).get(usuario_id)
+    return db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
 
 
 
 def eliminar_usuario(db: Session, usuario_id: int):
-    usuario = db.query(models.Usuario).get(usuario_id)
-    db.delete(usuario)
-    db.commit()
-    return {"message": "Usuario eliminado"}
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if usuario:
+        db.delete(usuario)
+        db.commit()
+        return usuario
+    return None
 
-def obtener_usuarios_por_empresa(db: Session, empresa_id: int):
-    return db.query(models.Usuario).filter(models.Usuario.id_fk_empresa == empresa_id).all()
 
+def obtener_usuario_con_empresa(db: Session, usuario_id: int):
+    return db.query(models.Usuario, models.Empresa).join(models.Usuario.empresa).filter(models.Usuario.id == usuario_id).first()
+
+def obtener_empresas(db: Session):
+    return db.query(models.Empresa).all()
+
+def obtener_usuarios_por_empresa(db: Session, id_fk_empresa: int):
+    return db.query(models.Usuario).filter(models.Usuario.id_fk_empresa == id_fk_empresa).all()

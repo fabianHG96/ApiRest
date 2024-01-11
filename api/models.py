@@ -3,13 +3,14 @@ from sqlalchemy.orm import relationship
 from .database import Base
 from pydantic import BaseModel
 
-# modelos SQLAlchemy
+
 class Empresa(Base):
     __tablename__ = "empresas"
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String)
 
+    usuarios = relationship("Usuario", back_populates="empresa", cascade="all, delete-orphan", single_parent=True)
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -18,7 +19,8 @@ class Usuario(Base):
     nombre = Column(String)
     email = Column(String)
 
-    empresa = relationship("Empresa")
+
+    empresa = relationship("Empresa", back_populates="usuarios")
 
 
 

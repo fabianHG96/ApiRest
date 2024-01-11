@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException, Request, Depends, Form
+from fastapi import FastAPI, HTTPException, Request, Depends, Form, Query
 from api import models, crud, database
 from typing import  List
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,7 +12,6 @@ app = FastAPI()
 
 
 
-# modelos Pydantic
 templates = Jinja2Templates(directory="api/templates")
 
 
@@ -25,10 +24,16 @@ def read_root(request: Request, db: Session = Depends(database.get_db)):
     return templates.TemplateResponse("index.html", {"request": request, "users": users})
 
 
-@app.get("/usuarios/{usuario_id}/ver", response_model=models.UsuarioBase)
-def leer_usuario(usuario_id: int):
-    db = database.SessionLocal()
-    return crud.leer_usuario(db, usuario_id)
+@app.get("/usuarios/{usuario_id}/ver", response_class=HTMLResponse)
+def ver_usuario(request: Request, usuario_id: int, db: Session = Depends(database.get_db)):
+    usuario_con_empresa = crud.obtener_usuario_con_empresa(db, usuario_id)
+
+    if usuario_con_empresa is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    usuario, empresa = usuario_con_empresa
+
+    return templates.TemplateResponse("details.html", {"request": request, "usuario": usuario, "empresa": empresa})
 
 @app.get("/usuarios/create", response_class=HTMLResponse)
 def create_user_view(request: Request):
@@ -70,17 +75,19 @@ def actualizar_usuario(usuario_id: int, nombre: str = Form(...), email: str = Fo
     return RedirectResponse(url="/", status_code=303)
 
 @app.delete("/usuarios/{usuario_id}/eliminar")
-def eliminar_usuario(usuario_id: int, request: Request, db: Session = Depends(database.get_db)):
-    db_user = crud.leer_usuario(db, usuario_id)
-    if db_user:
-        crud.eliminar_usuario(db, usuario_id)
-        return RedirectResponse(url="/", status_code=303)
+def eliminar_usuario(usuario_id: int, db: Session = Depends(database.get_db)):
+    usuario_eliminado = crud.eliminar_usuario(db, usuario_id)
+    if usuario_eliminado:
+        return {"status": "Usuario eliminado exitosamente"}
     else:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
 
-@app.get("/empresas/{empresa_id}/usuarios", response_model=List[models.UsuarioBase])
-def obtener_usuarios_por_empresa(empresa_id: int):
-    db = database.SessionLocal()
-    return crud.obtener_usuarios_por_empresa(db, empresa_id)
+
+@app.get('/empresas/usuarios')
+async def obtener_usuarios_por_empresa(request: Request, db: Session = Depends(database.get_db)):
+    empresas = crud.obtener_empresas(db)
+    usuario = {"id_fk_empresa": None} 
+    return templates.TemplateResponse("usuarios_empresa.html", {"request": request, "empresas": empresas, "usuario": usuario})
 
 
