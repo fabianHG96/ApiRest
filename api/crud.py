@@ -13,12 +13,7 @@ def crear_usuario(db: Session, usuario: models.UsuarioBase):
 def leer_usuario(db: Session, usuario_id: int):
     return db.query(models.Usuario).get(usuario_id)
 
-def actualizar_usuario(db: Session, usuario_id: int, usuario: models.UsuarioBase):
-    db_usuario = db.query(models.UsuarioBase).get(usuario_id)
-    for key, value in usuario.dict().items():
-        setattr(db_usuario, key, value)
-    db.commit()
-    return db_usuario
+
 
 def eliminar_usuario(db: Session, usuario_id: int):
     usuario = db.query(models.Usuario).get(usuario_id)

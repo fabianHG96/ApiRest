@@ -1,23 +1,17 @@
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from api import models, crud, database
 from typing import  List
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+
+
 
 app = FastAPI()
 
 
-models.Base.metadata.create_all(bind=database.engine)
-db = database.SessionLocal()
-empresa_1 = models.Empresa(nombre="Empresa A")
-empresa_2 = models.Empresa(nombre="Empresa B")
 
-db.add(empresa_1)
-db.add(empresa_2)
-
-db.commit()
 # modelos Pydantic
 templates = Jinja2Templates(directory="api/templates")
 
@@ -31,41 +25,58 @@ def read_root(request: Request, db: Session = Depends(database.get_db)):
     return templates.TemplateResponse("index.html", {"request": request, "users": users})
 
 
-@app.get("/usuarios/ver/{usuario_id}", response_model=models.UsuarioBase)
+@app.get("/usuarios/{usuario_id}/ver", response_model=models.UsuarioBase)
 def leer_usuario(usuario_id: int):
     db = database.SessionLocal()
     return crud.leer_usuario(db, usuario_id)
 
+@app.get("/usuarios/create", response_class=HTMLResponse)
+def create_user_view(request: Request):
+    return templates.TemplateResponse("create_users.html", {"request": request})
+
 @app.post("/usuarios/create")
-def crear_usuario(usuario: models.UsuarioBase):
+def crear_usuario(nombre: str = Form(...), email: str = Form(...), id_fk_empresa: int = Form(...)):
     try:
         db = database.SessionLocal()
-        usuario_db = models.Usuario(**usuario.dict())
-        return crud.crear_usuario(db, usuario_db)
+        usuario = models.Usuario(nombre=nombre, email=email, id_fk_empresa=id_fk_empresa)
+        crud.crear_usuario(db, usuario)
+        return RedirectResponse(url="/", status_code=303)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear usuario: {str(e)}")
 
-@app.put("/usuarios/update/{usuario_id}")
-def actualizar_usuario(usuario_id: int, usuario: models.UsuarioBase):
+@app.get("/usuarios/{usuario_id}/update", response_class=HTMLResponse)
+def ver_actualizar_usuario(request: Request, usuario_id: int):
     db = database.SessionLocal()
     db_usuario = crud.leer_usuario(db, usuario_id)
 
     if db_usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    usuario_data = usuario.dict(exclude_unset=True)
-    for key, value in usuario_data.items():
-        setattr(db_usuario, key, value)
+    return templates.TemplateResponse("update.html", {"request": request, "usuario": db_usuario})
 
-    db.commit()
-  
-
-    return db_usuario
-
-@app.delete("/usuarios/delete/{usuario_id}")
-def eliminar_usuario(usuario_id: int):
+@app.post("/usuarios/{usuario_id}/update")
+def actualizar_usuario(usuario_id: int, nombre: str = Form(...), email: str = Form(...), id_fk_empresa: int = Form(...)):
     db = database.SessionLocal()
-    return crud.eliminar_usuario(db, usuario_id)
+    db_usuario = crud.leer_usuario(db, usuario_id)
+
+    if db_usuario is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    db_usuario.nombre = nombre
+    db_usuario.email = email
+    db_usuario.id_fk_empresa = id_fk_empresa
+    db.commit()
+    db_usuario
+    return RedirectResponse(url="/", status_code=303)
+
+@app.delete("/usuarios/{usuario_id}/eliminar")
+def eliminar_usuario(usuario_id: int, request: Request, db: Session = Depends(database.get_db)):
+    db_user = crud.leer_usuario(db, usuario_id)
+    if db_user:
+        crud.eliminar_usuario(db, usuario_id)
+        return RedirectResponse(url="/", status_code=303)
+    else:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
 @app.get("/empresas/{empresa_id}/usuarios", response_model=List[models.UsuarioBase])
 def obtener_usuarios_por_empresa(empresa_id: int):

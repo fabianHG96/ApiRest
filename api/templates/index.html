@@ -14,7 +14,6 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Agrega tus enlaces de navegación aquí si es necesario -->
             </div>
         </div>
     </nav>
@@ -29,7 +28,7 @@
                                 <a class="nav-link active" href="/">Ver Usuarios</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/createUsuarios/">Crear Usuario</a>
+                                <a class="nav-link" href="/usuarios/create">Crear Usuario</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="/empresas/1/usuarios">Usuarios por Empresa</a>
@@ -55,6 +54,12 @@
                                 <td>{{ user.id }}</td>
                                 <td>{{ user.nombre }}</td>
                                 <td>{{ user.email }}</td>
+                                <td>
+                                    <a href="/usuarios/{{ user.id }}/ver" class="btn btn-primary">Ver</a>
+                                    <a href="/usuarios/{{ user.id }}/update" class="btn btn-warning">Actualizar</a>
+                                    <a href="/usuarios/{{ user.id }}/eliminar" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar este usuario?')">Eliminar</a>
+
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
