@@ -21,7 +21,7 @@ def actualizar_usuario(db: Session, usuario_id: int, usuario: models.UsuarioBase
     return db_usuario
 
 def eliminar_usuario(db: Session, usuario_id: int):
-    usuario = db.query(models.UsuarioBase).get(usuario_id)
+    usuario = db.query(models.Usuario).get(usuario_id)
     db.delete(usuario)
     db.commit()
     return {"message": "Usuario eliminado"}

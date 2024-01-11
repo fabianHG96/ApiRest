@@ -1,8 +1,10 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
 from api import models, crud, database
 from typing import  List
-from api.models import UsuarioBase
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 
@@ -17,9 +19,24 @@ db.add(empresa_2)
 
 db.commit()
 # modelos Pydantic
+templates = Jinja2Templates(directory="api/templates")
 
 
-@app.post("/usuarios/")
+
+
+                                      
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request, db: Session = Depends(database.get_db)):
+    users = crud.obtener_usuarios(db)
+    return templates.TemplateResponse("index.html", {"request": request, "users": users})
+
+
+@app.get("/usuarios/ver/{usuario_id}", response_model=models.UsuarioBase)
+def leer_usuario(usuario_id: int):
+    db = database.SessionLocal()
+    return crud.leer_usuario(db, usuario_id)
+
+@app.post("/usuarios/create")
 def crear_usuario(usuario: models.UsuarioBase):
     try:
         db = database.SessionLocal()
@@ -28,21 +45,7 @@ def crear_usuario(usuario: models.UsuarioBase):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear usuario: {str(e)}")
 
-
-@app.get("/usuarios/", response_model=List[models.UsuarioBase])
-
-def leer_usuarios(skip: int = 0, limit: int = 100):
-    db = database.SessionLocal()
-    return crud.obtener_usuarios(db, skip=skip, limit=limit)
-
-
-
-@app.get("/usuarios/{usuario_id}", response_model=models.UsuarioBase)
-def leer_usuario(usuario_id: int):
-    db = database.SessionLocal()
-    return crud.leer_usuario(db, usuario_id)
-
-@app.put("/usuarios/{usuario_id}")
+@app.put("/usuarios/update/{usuario_id}")
 def actualizar_usuario(usuario_id: int, usuario: models.UsuarioBase):
     db = database.SessionLocal()
     db_usuario = crud.leer_usuario(db, usuario_id)
@@ -59,7 +62,7 @@ def actualizar_usuario(usuario_id: int, usuario: models.UsuarioBase):
 
     return db_usuario
 
-@app.delete("/usuarios/{usuario_id}")
+@app.delete("/usuarios/delete/{usuario_id}")
 def eliminar_usuario(usuario_id: int):
     db = database.SessionLocal()
     return crud.eliminar_usuario(db, usuario_id)
